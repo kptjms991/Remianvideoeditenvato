@@ -11,9 +11,10 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem("envato_token")
-    setIsAuthenticated(!!token)
+    // Check if user is authenticated (either Envato or Admin)
+    const envatoToken = localStorage.getItem("envato_token")
+    const adminToken = localStorage.getItem("admin_token")
+    setIsAuthenticated(!!(envatoToken || adminToken))
     setIsLoading(false)
   }, [])
 
@@ -91,9 +92,19 @@ export default function Home() {
           Access thousands of premium templates from Envato. Edit, customize, and export in minutes with our intuitive
           timeline editor.
         </p>
-        <Button onClick={handleEnvatoLogin} size="lg" className="px-8 py-6 text-base">
-          Sign in with Envato
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button onClick={handleEnvatoLogin} size="lg" className="px-8 py-6 text-base">
+            Sign in with Envato
+          </Button>
+          <Button
+            onClick={() => router.push("/admin/login")}
+            size="lg"
+            variant="outline"
+            className="px-8 py-6 text-base"
+          >
+            Admin Access
+          </Button>
+        </div>
       </section>
 
       {/* Features Section */}
@@ -146,9 +157,19 @@ export default function Home() {
             <CardDescription>Start editing with Envato templates today</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={handleEnvatoLogin} size="lg" className="px-8 py-6 text-base">
-              Get Started Now
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={handleEnvatoLogin} size="lg" className="px-8 py-6 text-base">
+                Get Started Now
+              </Button>
+              <Button
+                onClick={() => router.push("/admin/login")}
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-base"
+              >
+                Admin Login
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

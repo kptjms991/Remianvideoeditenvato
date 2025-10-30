@@ -9,13 +9,19 @@ export default function EditorPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
-    const token = localStorage.getItem("envato_token")
-    if (!token) {
+    const envatoToken = localStorage.getItem("envato_token")
+    const adminToken = localStorage.getItem("admin_token")
+    const role = localStorage.getItem("user_role")
+
+    if (!envatoToken && !adminToken) {
       router.push("/")
       return
     }
+
+    setUserRole(role || "user")
     setIsAuthenticated(true)
     setIsLoading(false)
   }, [router])
@@ -37,7 +43,7 @@ export default function EditorPage() {
 
   return (
     <EditorProvider>
-      <EditorLayout />
+      <EditorLayout userRole={userRole} />
     </EditorProvider>
   )
 }

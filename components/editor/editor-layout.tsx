@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import TemplateLibrary from "./template-library"
 import TimelineEditor from "./timeline-editor"
 import EditingPanel from "./editing-panel"
@@ -9,11 +10,16 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts"
 import { ShortcutsHelp } from "./shortcuts-help"
 import { useEditor } from "./editor-context"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Undo2, Redo2, HelpCircle, Sparkles } from "lucide-react"
+import { Menu, X, Undo2, Redo2, HelpCircle, Sparkles, LogOut, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AIChatSidebar from "./ai-chat-sidebar"
 
-export default function EditorLayout() {
+interface EditorLayoutProps {
+  userRole?: string | null
+}
+
+export default function EditorLayout({ userRole }: EditorLayoutProps) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -33,6 +39,18 @@ export default function EditorLayout() {
       description: "Project saved successfully",
       duration: 2000,
     })
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token")
+    localStorage.removeItem("envato_token")
+    localStorage.removeItem("user_role")
+    localStorage.removeItem("user_email")
+    toast({
+      description: "Logged out successfully",
+      duration: 2000,
+    })
+    router.push("/")
   }
 
   return (
@@ -63,6 +81,12 @@ export default function EditorLayout() {
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
               <h1 className="text-lg font-semibold text-foreground">Remian Video Editor</h1>
+              {userRole === "admin" && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-full">
+                  <Shield className="w-3 h-3 text-primary" />
+                  <span className="text-xs font-medium text-primary">Admin</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -119,6 +143,18 @@ export default function EditorLayout() {
               >
                 <HelpCircle className="w-4 h-4" />
               </Button>
+
+              {userRole === "admin" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
 
