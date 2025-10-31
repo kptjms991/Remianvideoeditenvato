@@ -10,9 +10,11 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts"
 import { ShortcutsHelp } from "./shortcuts-help"
 import { useEditor } from "./editor-context"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Undo2, Redo2, HelpCircle, Sparkles, LogOut, Shield } from "lucide-react"
+import { Menu, X, Undo2, Redo2, HelpCircle, LogOut, Shield, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AIChatSidebar from "./ai-chat-sidebar"
+import FileUpload from "./file-upload"
+import CanvasPreview from "./canvas-preview"
 
 interface EditorLayoutProps {
   userRole?: string | null
@@ -24,6 +26,10 @@ export default function EditorLayout({ userRole }: EditorLayoutProps) {
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [aiChatOpen, setAiChatOpen] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [showUploadPanel, setShowUploadPanel] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
   const { state, setState, undo, redo, canUndo, canRedo } = useEditor()
   const { toast } = useToast()
 
@@ -53,6 +59,13 @@ export default function EditorLayout({ userRole }: EditorLayoutProps) {
     router.push("/")
   }
 
+  const handleFileUpload = (file: any) => {
+    setUploadedFiles((prev) => [...prev, file])
+    toast({
+      description: `${file.name} added to timeline`,
+    })
+  }
+
   return (
     <>
       <KeyboardShortcuts />
@@ -60,11 +73,30 @@ export default function EditorLayout({ userRole }: EditorLayoutProps) {
       <AIChatSidebar isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
 
       <div className="flex h-screen bg-background overflow-hidden">
-        {/* Sidebar - Template Library */}
+        {/* Sidebar - Template Library or Upload */}
         <div
           className={`${sidebarOpen ? "w-80" : "w-0"} transition-all duration-300 border-r border-border/40 overflow-hidden flex flex-col`}
         >
-          <TemplateLibrary onSelectTemplate={setSelectedTemplate} />
+          {showUploadPanel ? (
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-foreground">Upload Media</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowUploadPanel(false)}>
+                  Back
+                </Button>
+              </div>
+              <FileUpload onFileUpload={handleFileUpload} />
+            </div>
+          ) : (
+            <>
+              <TemplateLibrary onSelectTemplate={setSelectedTemplate} />
+              <div className="p-4 border-t border-border/40">
+                <Button onClick={() => setShowUploadPanel(true)} variant="outline" className="w-full">
+                  Upload Media
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Main Editor Area */}
@@ -160,9 +192,24 @@ export default function EditorLayout({ userRole }: EditorLayoutProps) {
 
           {/* Editor Content */}
           <div className="flex-1 flex overflow-hidden gap-4 p-4">
-            {/* Timeline and Preview */}
+            {/* Canvas Preview and Timeline */}
             <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-              <TimelineEditor selectedTemplate={selectedTemplate} />
+              <CanvasPreview
+                selectedTemplate={selectedTemplate}
+                uploadedFiles={uploadedFiles}
+                isPlaying={isPlaying}
+                onPlayStateChange={setIsPlaying}
+                currentTime={currentTime}
+                onTimeChange={setCurrentTime}
+              />
+              <TimelineEditor
+                selectedTemplate={selectedTemplate}
+                uploadedFiles={uploadedFiles}
+                isPlaying={isPlaying}
+                onPlayStateChange={setIsPlaying}
+                currentTime={currentTime}
+                onTimeChange={setCurrentTime}
+              />
             </div>
 
             {/* Right Panel - Editing Tools */}
