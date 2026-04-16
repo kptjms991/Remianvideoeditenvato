@@ -42,54 +42,69 @@ export default function ExportDialog({ open, onOpenChange, projectName = "projec
     setExportProgress(0)
 
     try {
-      // Simulate export process with steps
-      const steps = [
-        { name: "Preparing project...", duration: 1000 },
-        { name: "Encoding video...", duration: 3000 },
-        { name: "Processing audio...", duration: 1500 },
-        { name: "Applying effects...", duration: 2000 },
-        { name: "Finalizing export...", duration: 1000 },
-      ]
+      setExportStep("Preparing project...")
+      
+      // Get clips from parent (would be passed as prop in production)
+      const clips = []
+      const projectId = `project-${Date.now()}`
 
-      let currentProgress = 0
-      const progressPerStep = 100 / steps.length
+      // Send encoding request to backend
+      setExportStep("Sending to encoding service...")
+      const response = await fetch('/api/video/encode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          format: selectedFormat,
+          quality: selectedQuality,
+          clips,
+        }),
+      })
 
-      for (const step of steps) {
-        setExportStep(step.name)
-        const startProgress = currentProgress
-        const startTime = Date.now()
-
-        while (Date.now() - startTime < step.duration) {
-          const elapsed = Date.now() - startTime
-          const stepProgress = (elapsed / step.duration) * progressPerStep
-          setExportProgress(Math.min(startProgress + stepProgress, currentProgress + progressPerStep))
-          await new Promise((resolve) => setTimeout(resolve, 50))
-        }
-
-        currentProgress += progressPerStep
-        setExportProgress(currentProgress)
+      if (!response.ok) {
+        throw new Error('Failed to start encoding')
       }
 
-      // Simulate download
-      setExportStep("Downloading file...")
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const { jobId } = await response.json()
+      
+      // Poll for job status
+      setExportStep("Encoding video...")
+      let isComplete = false
+      let pollCount = 0
+      const maxPolls = 60 // 5 minutes with 5s intervals
 
-      // Create a mock download
-      const format = EXPORT_FORMATS.find((f) => f.id === selectedFormat)
-      const quality = QUALITY_PRESETS.find((q) => q.id === selectedQuality)
-      const fileContent = `Mock video file: ${fileName}${format?.extension}\nQuality: ${quality?.name}\nFormat: ${format?.name}`
-      const blob = new Blob([fileContent], { type: "text/plain" })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${fileName}${format?.extension}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      while (!isComplete && pollCount < maxPolls) {
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        
+        const statusResponse = await fetch(`/api/video/encode?jobId=${jobId}`)
+        const status = await statusResponse.json()
+        
+        setExportProgress(Math.min(status.progress || 0, 99))
+        
+        if (status.status === 'completed') {
+          isComplete = true
+          setExportProgress(100)
+        }
+        
+        pollCount++
+      }
 
-      setExportProgress(100)
+      if (!isComplete) {
+        throw new Error('Encoding timeout')
+      }
+
       setExportStep("Export complete!")
+
+      // Trigger download
+      if (window) {
+        const downloadUrl = `/api/video/download?jobId=${jobId}`
+        const a = document.createElement('a')
+        a.href = downloadUrl
+        a.download = `${fileName}${EXPORT_FORMATS.find((f) => f.id === selectedFormat)?.extension}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
 
       setTimeout(() => {
         onOpenChange(false)
@@ -98,7 +113,8 @@ export default function ExportDialog({ open, onOpenChange, projectName = "projec
         setExportStep("")
       }, 1000)
     } catch (error) {
-      console.error("Export failed:", error)
+      console.error("[v0] Export failed:", error)
+      setExportStep("Export failed. Please try again.")
       setIsExporting(false)
     }
   }
